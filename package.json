@@ -1,7 +1,7 @@
 {
   "name": "botbuilder-sample-imagecaption",
   "version": "1.0.0",
-  "description": "Bot Builder Sample - Image Caption",
+  "description": "Bot Builder Sample - Image Detection",
   "scripts": {
     "start": "node app.js"
   },
@@ -13,13 +13,6 @@
     "chatbots",
     "botbuilder-samples"
   ],
-  "bugs": {
-    "url": "https://github.com/Microsoft/BotBuilder-Samples/issues"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/Microsoft/BotBuilder-Samples.git"
-  },
   "dependencies": {
     "botbuilder": "^3.8.2",
     "dotenv-extended": "^1.0.4",
