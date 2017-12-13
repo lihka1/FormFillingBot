@@ -30,26 +30,60 @@ var connector = new builder.ChatConnector({
 
 server.post('/api/messages', connector.listen());
 
+
+// Welcome  Dialog
+var MainOptions = {
+    Shop: 'FillForm',
+    Support: 'Exit'
+};
+
+
+
+
+
+
+
+
 // Gets the caption by checking the type of the image (stream vs URL) and calling the appropriate caption service method.
 var bot = new builder.UniversalBot(connector, [
     function (session) {
-        if (hasImageAttachment(session)) {
-            var stream = getImageStreamFromMessage(session.message);
-            captionService
-                .getCaptionFromStream(stream)
-                .then(function (caption) { handleSuccessResponse(session, caption); })
-                .catch(function (error) { handleErrorResponse(session, error); });
-        } else {
-            var imageUrl = parseAnchorTag(session.message.text) || (validUrl.isUri(session.message.text) ? session.message.text : null);
-            if (imageUrl) {
-                captionService
-                    .getCaptionFromUrl(imageUrl)
-                    .then(function (caption) { handleSuccessResponse(session, caption); })
-                    .catch(function (error) { handleErrorResponse(session, error); });
-            } else {
-                session.send('Did you upload an image? I\'m more of a visual person. Try sending me an image or an image URL');
-            }
+
+        
+        if (localizedRegex(session, [MainOptions.Shop]).test(session.message.text)) {
+            // Order Flowers
+            return session.beginDialog('regionSelection');
         }
+        var welcomeCard = new builder.HeroCard(session)
+        .images([
+            new builder.CardImage(session)
+                .url('https://travelvisabookings.com/wp-content/uploads/2016/02/visa-application-form.jpg')
+                .alt('FormImage')
+        ])
+        .buttons([
+            builder.CardAction.postBack(session, session.gettext(MainOptions.Shop), MainOptions.Shop),
+            builder.CardAction.postBack(session, session.gettext(MainOptions.Support), MainOptions.Support)
+        ]);
+
+    session.send(new builder.Message(session)
+        .addAttachment(welcomeCard));
+
+        // if (hasImageAttachment(session)) {
+        //     var stream = getImageStreamFromMessage(session.message);
+        //     captionService
+        //         .getCaptionFromStream(stream)
+        //         .then(function (caption) { handleSuccessResponse(session, caption); })
+        //         .catch(function (error) { handleErrorResponse(session, error); });
+        // } else {
+        //     var imageUrl = parseAnchorTag(session.message.text) || (validUrl.isUri(session.message.text) ? session.message.text : null);
+        //     if (imageUrl) {
+        //         captionService
+        //             .getCaptionFromUrl(imageUrl)
+        //             .then(function (caption) { handleSuccessResponse(session, caption); })
+        //             .catch(function (error) { handleErrorResponse(session, error); });
+        //     } else {
+        //         session.send('Did you upload an image? I\'m more of a visual person. Try sending me an image or an image URL');
+        //     }
+        // }
     }]);
 
 
@@ -67,8 +101,7 @@ bot.dialog('regionSelection', [
                             "type": "TextBlock",
                             "size": "medium",
                             "weight": "bolder",
-                            "text": "Other Details",
-                            "horizontalAlignment": "center"
+                            "text": "Details"
                           },
                           {
                             "type": "Input.Text",
@@ -171,26 +204,98 @@ bot.dialog('regionSelection', [
             session.send(msg)
         }
         if (session.message.value) {
-            session.endDialog("saved the details")
+            session.send("Saved the details")
+            session.beginDialog('imageDetect')
         }
-    },
-    function (session) {
-        session.endDialog(`Region name ${results.response} saved!`);
     }
 ]);
+
+
+
+bot.dialog('imageDetect', [
+    function(session){
+        builder.Prompts.attachment(session, "Please upload a valid pan/aadhar card");
+        
+        },
+        function (session) {
+            if (hasImageAttachment(session)) {
+                var stream = getImageStreamFromMessage(session.message);
+                captionService
+                    .getCaptionFromStream(stream)
+                    .then(function (caption) { handleSuccessResponse(session, caption); })
+                    .catch(function (error) { handleErrorResponse(session, error); });
+            } else {
+                var imageUrl = parseAnchorTag(session.message.text) || (validUrl.isUri(session.message.text) ? session.message.text : null);
+                if (imageUrl) {
+                    captionService
+                        .getCaptionFromUrl(imageUrl)
+                        .then(function (caption) { handleSuccessResponse(session, caption); })
+                        .catch(function (error) { handleErrorResponse(session, error); });
+                } else {
+                    session.send('Did you upload an image? I\'m more of a visual person. Try sending me an image or an image URL');
+                }
+            }
+        }
+]);
+
+
+bot.dialog('Exit',function (session, args, next) {
+    
+        //builder.Prompts.choice(session, "Are you sure you wish to restart?", "Yes|No", { listStyle: 3 });
+        session.endDialog("Bye!");
+    })
+    .triggerAction({
+        matches: /^Exit$/i
+    });
+
+
+
+
+    // bot.dialog('restart',function (session, args, next) {
+        
+    //         //builder.Prompts.choice(session, "Are you sure you wish to restart?", "Yes|No", { listStyle: 3 });
+    //         session.endDialog("Bye!");
+    //     })
+    //     .triggerAction({
+    //         matches: /^Exit$/i
+    //     });
+    bot.dialog('restart',[function (session) {
+        
+        session.beginDialog('regionSelection')
+        }
+    ])
+        .triggerAction({
+            matches: /^restart$/i
+        });
+
+
+
+
 
 //=========================================================
 // Bots Events
 //=========================================================
 //Sends greeting message when the bot is first added to a conversation
+// bot.on('conversationUpdate', function (message) {
+//     if (message.membersAdded) {
+//         message.membersAdded.forEach(function (identity) {
+//             if (identity.id === message.address.bot.id) {
+//                 var reply = new builder.Message()
+//                     .address(message.address)
+//                     .text('Please upload a pan/aadhar ');
+//                 bot.send(reply);
+//             }
+//         });
+//     }
+// });
+
+
+// Send welcome when conversation with bot is started, by initiating the root dialog
 bot.on('conversationUpdate', function (message) {
     if (message.membersAdded) {
         message.membersAdded.forEach(function (identity) {
             if (identity.id === message.address.bot.id) {
-                var reply = new builder.Message()
-                    .address(message.address)
-                    .text('Hi! I am ImageDetection Bot. I can understand the content of any image and try to describe it as well as any human. Try sending me an image or an image URL.');
-                bot.send(reply);
+                bot.beginDialog(message.address, '/');
             }
         });
     }
@@ -243,13 +348,16 @@ function parseAnchorTag(input) {
 // Response Handling
 //=========================================================
 function handleSuccessResponse(session, caption) {
-    if (caption) {
-        session.send(caption);
-        session.beginDialog('regionSelection')
-
+    if ( "Please upload a valid pan/aadhar card" == caption.toString())  {
+        // session.send(caption);
+        // session.beginDialog('imageDetect')
+        session.beginDialog('imageDetect')
     }
     else {
-        session.send('Couldn\'t find a caption for this one');
+        // session.send("OTHER")
+        // session.send(caption.toString() ===  "please upload a valid pan/aadhar");
+        session.send(caption);        
+        session.endDialog('Thanks for the time!')
     }
 
 }
@@ -261,4 +369,20 @@ function handleErrorResponse(session, error) {
 
     console.error(error);
     session.send(clientErrorMessage);
+}
+
+
+// Cache of localized regex to match selection from main options
+var LocalizedRegexCache = {};
+function localizedRegex(session, localeKeys) {
+    var locale = session.preferredLocale();
+    var cacheKey = locale + ":" + localeKeys.join('|');
+    if (LocalizedRegexCache.hasOwnProperty(cacheKey)) {
+        return LocalizedRegexCache[cacheKey];
+    }
+
+    var localizedStrings = localeKeys.map(function (key) { return session.localizer.gettext(locale, key); });
+    var regex = new RegExp('^(' + localizedStrings.join('|') + ')', 'i');
+    LocalizedRegexCache[cacheKey] = regex;
+    return regex;
 }

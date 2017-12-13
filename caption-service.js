@@ -122,7 +122,7 @@ function extractCaption(body) {
 
     var text_list = item_generator(body,"text")
     if (! text_list.length > 0){
-        return ("Unable to detect")
+        return ("Please upload a valid pan/aadhar card")
     }
 
     var regpan = /^([a-zA-Z]){5}([0-9]){4}([a-zA-Z]){1}?$/;
@@ -146,7 +146,7 @@ function extractCaption(body) {
     console.log(aadhar_nos)
     var lenOfAaadhar = aadhar_nos.length;
     if (! (lenOfAaadhar >= 3) ){
-        return ("unable to detect the aadhar no");
+        return ("please upload a valid pan/aadhar");
     } 
     else{
         return ("Aadhar No is: "+aadhar_nos[lenOfAaadhar-3]+" "+aadhar_nos[lenOfAaadhar-2]+ " "+aadhar_nos[lenOfAaadhar-1]);
@@ -157,5 +157,5 @@ function extractCaption(body) {
         return body.description.captions[0].text;
     }
 
-    return null;
+    return ("please upload a valid pan/aadhar");
 }
