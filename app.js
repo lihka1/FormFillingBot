@@ -357,7 +357,7 @@ function handleSuccessResponse(session, caption) {
         // session.send("OTHER")
         // session.send(caption.toString() ===  "please upload a valid pan/aadhar");
         session.send(caption);        
-        session.endDialog('Thanks for the time!')
+        session.endDialog('Thanks for filling the details')
     }
 
 }
