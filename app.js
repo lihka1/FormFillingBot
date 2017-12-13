@@ -33,7 +33,7 @@ server.post('/api/messages', connector.listen());
 
 // Welcome  Dialog
 var MainOptions = {
-    Shop: 'FillForm',
+    Shop: 'Fill Form',
     Support: 'Exit'
 };
 
