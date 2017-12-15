@@ -5,12 +5,17 @@ An image caption bot for the Microsoft Bot Framework.
 // This loads the environment variables from the .env file
 require('dotenv-extended').load();
 
+
 var builder = require('botbuilder'),
     needle = require('needle'),
     restify = require('restify'),
     url = require('url'),
     validUrl = require('valid-url'),
     captionService = require('./caption-service');
+var fs = require('fs');
+var json2xls = require('json2xls');
+
+
 
 //=========================================================
 // Bot Setup
@@ -43,49 +48,34 @@ var MainOptions = {
 
 
 
+var inMemoryStorage = new builder.MemoryBotStorage();
 
 // Gets the caption by checking the type of the image (stream vs URL) and calling the appropriate caption service method.
 var bot = new builder.UniversalBot(connector, [
     function (session) {
-
-        
         if (localizedRegex(session, [MainOptions.Shop]).test(session.message.text)) {
             // Order Flowers
             return session.beginDialog('regionSelection');
         }
         var welcomeCard = new builder.HeroCard(session)
-        .images([
-            new builder.CardImage(session)
-                .url('https://travelvisabookings.com/wp-content/uploads/2016/02/visa-application-form.jpg')
-                .alt('FormImage')
-        ])
-        .buttons([
-            builder.CardAction.postBack(session, session.gettext(MainOptions.Shop), MainOptions.Shop),
-            builder.CardAction.postBack(session, session.gettext(MainOptions.Support), MainOptions.Support)
-        ]);
+            .images([
+                new builder.CardImage(session)
+                    .url('https://travelvisabookings.com/wp-content/uploads/2016/02/visa-application-form.jpg')
+                    .alt('FormImage')
+            ])
+            .buttons([
+                builder.CardAction.postBack(session, session.gettext(MainOptions.Shop), MainOptions.Shop),
+                builder.CardAction.postBack(session, session.gettext(MainOptions.Support), MainOptions.Support)
+            ]);
 
-    session.send(new builder.Message(session)
-        .addAttachment(welcomeCard));
-
-        // if (hasImageAttachment(session)) {
-        //     var stream = getImageStreamFromMessage(session.message);
-        //     captionService
-        //         .getCaptionFromStream(stream)
-        //         .then(function (caption) { handleSuccessResponse(session, caption); })
-        //         .catch(function (error) { handleErrorResponse(session, error); });
-        // } else {
-        //     var imageUrl = parseAnchorTag(session.message.text) || (validUrl.isUri(session.message.text) ? session.message.text : null);
-        //     if (imageUrl) {
-        //         captionService
-        //             .getCaptionFromUrl(imageUrl)
-        //             .then(function (caption) { handleSuccessResponse(session, caption); })
-        //             .catch(function (error) { handleErrorResponse(session, error); });
-        //     } else {
-        //         session.send('Did you upload an image? I\'m more of a visual person. Try sending me an image or an image URL');
-        //     }
-        // }
+        session.send(new builder.Message(session)
+            .addAttachment(welcomeCard));
     }]);
 
+// Enable Conversation Data persistence
+bot.set('persistConversationData', true);
+
+bot.set('storage', inMemoryStorage)
 
 // Ask the user for their name and greet them by name.
 bot.dialog('regionSelection', [
@@ -101,44 +91,61 @@ bot.dialog('regionSelection', [
                             "type": "TextBlock",
                             "size": "medium",
                             "weight": "bolder",
-                            "text": "Details"
+                            "text": "Details",
+                            "horizontalAlignment": "center"
                           },
                           {
                             "type": "Input.Text",
                             "placeholder": "Name",
                             "style": "text",
                             "maxLength": 0,
-                            "id": "SimpleVal"
+                            "id": "Name"
+                          },
+                                                  {
+                            "type": "TextBlock",
+                            "size": "medium",
+                            "text": "Insured For",
+                            "weight": "bolder"
+
                           },
                           {
-                            "type": "Input.Text",
-                            "placeholder": "Homepage",
-                            "style": "url",
-                            "maxLength": 0,
-                            "id": "UrlVal"
+                            "type": "Input.ChoiceSet",
+                            "id": "InsuredFor",
+                            "style": "compact",
+                            "value": "Self",
+                            "choices": [
+                              {
+                                "title": "Self",
+                                "value": "Self"
+                              },
+                              {
+                                "title": "Father",
+                                "value": "Father"
+                              },
+                              {
+                                "title": "Mother",
+                                "value": "Mother"
+                              },
+                                                            {
+                                "title": "Spouse",
+                                "value": "Spouse"
+                              },
+                                                            {
+                                "title": "Other",
+                                "value": "Other"
+                              }
+                              
+                            ]
                           },
+                         
                           {
                             "type": "Input.Text",
                             "placeholder": "Email",
                             "style": "email",
                             "maxLength": 0,
-                            "id": "EmailVal"
+                            "id": "Email"
                           },
-                          {
-                            "type": "Input.Text",
-                            "placeholder": "Phone",
-                            "style": "tel",
-                            "maxLength": 0,
-                            "id": "TelVal"
-                          },
-                          {
-                            "type": "Input.Text",
-                            "placeholder": "Comments",
-                            "style": "text",
-                            "isMultiline": true,
-                            "maxLength": 0,
-                            "id": "MultiLineVal"
-                          },
+                          
                           {
                             "type": "TextBlock",
                             "size": "medium",
@@ -148,21 +155,11 @@ bot.dialog('regionSelection', [
                           {
                             "type": "Input.Date",
                             "placeholder": "Due Date",
-                            "id": "DateVal",
+                            "id": "Date",
                             "value": "Date"
                           },
-                          {
-                            "type": "TextBlock",
-                            "size": "medium",
-                            "weight": "bolder",
-                            "text": "Time"
-                          },
-                          {
-                            "type": "Input.Time",
-                            "placeholder": "Start time",
-                            "id": "TimeVal",
-                            "value": ""
-                          },
+                        
+                         
                           {
                             "type": "TextBlock",
                             "size": "medium",
@@ -171,79 +168,127 @@ bot.dialog('regionSelection', [
                           },
                           {
                             "type": "Input.ChoiceSet",
-                            "id": "CompactSelectVal",
+                            "id": "Region",
                             "style": "compact",
-                            "value": "1",
+                            "value": "Bangalore",
                             "choices": [
                               {
                                 "title": "Bangalore",
-                                "value": "1"
+                                "value": "Bangalore"
                               },
                               {
                                 "title": "Huzurnagar",
-                                "value": "2"
+                                "value": "Huzurnagar"
                               },
                               {
                                 "title": "WestBengal",
-                                "value": "3"
+                                "value": "WestBengal"
                               }
                             ]
                           }
                     ],
                     "actions": [
                         {
-                          "type": "Action.Submit",
-                          "title": "Submit",
-                          "data": {
-                            "id": "1234567890"
-                          }
+                            "type": "Action.Submit",
+                            "title": "Submit",
+                            "data": {
+                                "id": "1234567890"
+                            }
                         }
-                      ]
-            }});
+                    ]
+                }
+            });
 
             session.send(msg)
         }
         if (session.message.value) {
-            session.send("Saved the details")
+
+
+            console.log(typeof (session.message.value))
+            console.log(session.message.value)
+
+            session.userData.details = session.message.value
+
+        
+
+            
+            // fs.writeFileSync("./data/test.xlsx", json2xls(json), function (err) {
+            //     if (err) {
+            //         return console.log(err);
+            //     }
+
+            //     console.log("The file was saved!");
+            // });
+
+            session.save()
             session.beginDialog('imageDetect')
         }
     }
 ]);
 
 
-
-bot.dialog('imageDetect', [
-    function(session){
-        builder.Prompts.attachment(session, "Please upload a valid pan/aadhar card");
-        
-        },
-        function (session) {
-            if (hasImageAttachment(session)) {
-                var stream = getImageStreamFromMessage(session.message);
-                captionService
-                    .getCaptionFromStream(stream)
-                    .then(function (caption) { handleSuccessResponse(session, caption); })
-                    .catch(function (error) { handleErrorResponse(session, error); });
-            } else {
-                var imageUrl = parseAnchorTag(session.message.text) || (validUrl.isUri(session.message.text) ? session.message.text : null);
-                if (imageUrl) {
-                    captionService
-                        .getCaptionFromUrl(imageUrl)
-                        .then(function (caption) { handleSuccessResponse(session, caption); })
-                        .catch(function (error) { handleErrorResponse(session, error); });
-                } else {
-                    session.send('Did you upload an image? I\'m more of a visual person. Try sending me an image or an image URL');
-                }
-            }
+bot.dialog('/phonePrompt', [
+    function (session, args) {
+        if (args && args.reprompt) {
+            builder.Prompts.text(session, "Enter/Say a correct number")
+        } else {
+            builder.Prompts.text(session, "Please provide your contact number");
         }
+    },
+    function (session, results) {
+        var matched = results.response.match(/\d+/g);
+        var number = matched ? matched.join('') : '';
+        if (number.length == 10 || number.length == 11) {
+            session.endDialogWithResult({ response: number });
+            session.userData.details['Contact No'] = results.response
+        } else {
+            session.replaceDialog('/phonePrompt', { reprompt: true });
+        }
+    }
 ]);
 
 
-bot.dialog('Exit',function (session, args, next) {
-    
-        //builder.Prompts.choice(session, "Are you sure you wish to restart?", "Yes|No", { listStyle: 3 });
-        session.endDialog("Bye!");
-    })
+
+
+bot.dialog('imageDetect', [
+
+    function(session){
+        console.log("Image detect began")
+        console.log(session.userData.details)
+        session.beginDialog('/phonePrompt')
+    },
+    function (session) {
+        session.send("Starting the EKYC process...")
+        builder.Prompts.attachment(session, "Please upload a valid pan/aadhar card");
+
+    },
+    function (session) {
+        if (hasImageAttachment(session)) {
+            var stream = getImageStreamFromMessage(session.message);
+            captionService
+                .getCaptionFromStream(stream)
+                .then(function (caption) { handleSuccessResponse(session, caption); })
+                .catch(function (error) { handleErrorResponse(session, error); });
+        } else {
+            var imageUrl = parseAnchorTag(session.message.text) || (validUrl.isUri(session.message.text) ? session.message.text : null);
+            if (imageUrl) {
+                captionService
+                    .getCaptionFromUrl(imageUrl)
+                    .then(function (caption) { handleSuccessResponse(session, caption); })
+                    .catch(function (error) { handleErrorResponse(session, error); });
+            } else {
+                session.send('Did you upload an image? I\'m more of a visual person. Try sending me an image or an image URL');
+            }
+        }
+    }
+]);
+
+
+bot.dialog('Exit', function (session, args, next) {
+
+    //builder.Prompts.choice(session, "Are you sure you wish to restart?", "Yes|No", { listStyle: 3 });
+    session.endDialog("Bye!");
+})
     .triggerAction({
         matches: /^Exit$/i
     });
@@ -251,22 +296,22 @@ bot.dialog('Exit',function (session, args, next) {
 
 
 
-    // bot.dialog('restart',function (session, args, next) {
-        
-    //         //builder.Prompts.choice(session, "Are you sure you wish to restart?", "Yes|No", { listStyle: 3 });
-    //         session.endDialog("Bye!");
-    //     })
-    //     .triggerAction({
-    //         matches: /^Exit$/i
-    //     });
-    bot.dialog('restart',[function (session) {
-        
-        session.beginDialog('regionSelection')
-        }
-    ])
-        .triggerAction({
-            matches: /^restart$/i
-        });
+// bot.dialog('restart',function (session, args, next) {
+
+//         //builder.Prompts.choice(session, "Are you sure you wish to restart?", "Yes|No", { listStyle: 3 });
+//         session.endDialog("Bye!");
+//     })
+//     .triggerAction({
+//         matches: /^Exit$/i
+//     });
+bot.dialog('restart', [function (session) {
+
+    session.beginDialog('regionSelection')
+}
+])
+    .triggerAction({
+        matches: /^restart$/i
+    });
 
 
 
@@ -348,7 +393,7 @@ function parseAnchorTag(input) {
 // Response Handling
 //=========================================================
 function handleSuccessResponse(session, caption) {
-    if ( "Please upload a valid pan/aadhar card" == caption.toString())  {
+    if ("Please upload a valid pan/aadhar card" == caption.toString()) {
         // session.send(caption);
         // session.beginDialog('imageDetect')
         session.beginDialog('imageDetect')
@@ -356,8 +401,19 @@ function handleSuccessResponse(session, caption) {
     else {
         // session.send("OTHER")
         // session.send(caption.toString() ===  "please upload a valid pan/aadhar");
-        session.send(caption);        
-        session.endDialog('Thanks for filling the details')
+        session.send(caption);
+        console.log("Adding the pan no: ")
+        if (caption.slice(0,1)  === 'P'){
+            session.userData.details['PAN'] = caption.slice(11,21);
+        }
+        else{
+            session.userData.details['Aadhar'] = caption.slice(14);
+        }
+        // save the details
+        var xls = json2xls(session.userData.details);
+        fs.writeFileSync('./data/test.xlsx', xls, 'binary');
+        console.log(session.userData.details)
+        session.endDialog('Details saved.Thanks for the time!')
     }
 
 }
@@ -370,7 +426,8 @@ function handleErrorResponse(session, error) {
     console.error(error);
     session.send(clientErrorMessage);
 }
-
+// Enable Conversation Data persistence
+bot.set('persistConversationData', true);
 
 // Cache of localized regex to match selection from main options
 var LocalizedRegexCache = {};
